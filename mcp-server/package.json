@@ -1,0 +1,19 @@
+{
+  "name": "policy-mcp-server",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.ts",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.8.3"
+  }
+}
