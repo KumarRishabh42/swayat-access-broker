@@ -38,6 +38,8 @@ export interface ExecutionResult {
   sessionId?: string;
   model?: string;
   costUsd?: number;
+  realApps?: string[]; // services executed with REAL Evolve managed integrations
+  simulated?: string[]; // services with no live integration (agent simulated)
   error?: string;
   startedAt?: string;
   finishedAt?: string;

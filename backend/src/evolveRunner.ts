@@ -12,6 +12,20 @@ import { CapabilityScope, ExecutionResult, TaskRequest } from "./types.ts";
 
 const CHEAP_ALIAS = "haiku"; // Evolve registry alias → claude-haiku-4-5-*
 
+// userId whose connected accounts (in the Evolve dashboard) the agent uses.
+export const INTEGRATION_USER = "root";
+
+// Our service vocabulary → Evolve managed-integration app names.
+// Services NOT in this map (e.g. sap) have no live integration → simulated.
+export const SERVICE_TO_APP: Record<string, string> = {
+  slack: "slack",
+  gmail: "gmail",
+  calendar: "googlecalendar",
+  github: "github",
+  notion: "notion",
+  linear: "linear",
+};
+
 function describe(caps: CapabilityScope[]): string {
   return caps
     .map((c) => {
@@ -38,6 +52,20 @@ export async function executeWithEvolve(
   }
 
   const allowList = describe(approved);
+
+  // Approved services split into REAL (have a managed integration) vs SIMULATED.
+  const services = [...new Set(approved.map((c) => c.service.toLowerCase()))];
+  const apps = [...new Set(services.map((s) => SERVICE_TO_APP[s]).filter(Boolean))];
+  const realServices = services.filter((s) => SERVICE_TO_APP[s]);
+  const simulated = services.filter((s) => !SERVICE_TO_APP[s]);
+
+  const realLine = realServices.length
+    ? `You have REAL, LIVE access to these services via connected tools — actually perform the work using them: ${realServices.join(", ")}.`
+    : "";
+  const mockLine = simulated.length
+    ? `These services are NOT connected in this demo — SIMULATE them and clearly label any simulated step: ${simulated.join(", ")}.`
+    : "";
+
   const prompt = `You are a restricted autonomous agent operating under a least-privilege policy.
 
 You are ONLY permitted to use these capabilities:
@@ -45,14 +73,20 @@ ${allowList}
 
 Any action outside this allow-list is forbidden — if the task seems to need more, stop and explain what was blocked.
 
+${realLine}
+${mockLine}
+
 TASK:
 ${task.userPrompt}
 
-Since external systems are mocked in this demo, simulate the steps you WOULD take using only the allowed capabilities, then write a concise markdown report of what you did (and anything you refused to do) to output/result.md.`;
+When done, write a concise markdown report of what you did (real actions vs simulated) and anything you refused, to output/result.md.`;
 
   let agent: Evolve | null = null;
   try {
     agent = new Evolve().withAgent({ type: "claude", model: CHEAP_ALIAS });
+    if (apps.length) {
+      agent = agent.withIntegrations({ userId: INTEGRATION_USER, apps });
+    }
 
     const res = await agent.run({ prompt });
 
@@ -82,13 +116,18 @@ Since external systems are mocked in this demo, simulate the steps you WOULD tak
 
     return {
       status: "success",
-      summary: `Ran on ${CHEAP_ALIAS} in an Evolve sandbox`,
+      summary:
+        apps.length > 0
+          ? `Ran on ${CHEAP_ALIAS} with live integrations: ${apps.join(", ")}`
+          : `Ran on ${CHEAP_ALIAS} (all services simulated)`,
       output,
       files,
       runId: res.runId,
       sessionId: res.sessionId,
       model: CHEAP_ALIAS,
       costUsd,
+      realApps: apps,
+      simulated,
       startedAt,
       finishedAt: new Date().toISOString(),
     };

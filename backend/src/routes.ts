@@ -1,13 +1,51 @@
 import { Router } from "express";
 import { v4 as uuid } from "uuid";
+import { Evolve } from "@evolvingmachines/sdk";
 import { Persona, TaskRequest, PolicyDecision } from "./types.ts";
 import { personaDB, taskDB, decisionDB } from "./db.ts";
 import { isSubset, generateReasoning } from "./policyEngine.ts";
 import { proposeCapabilities } from "./llmProposer.ts";
 import { deriveCeiling } from "./personaCeiling.ts";
-import { executeWithEvolve } from "./evolveRunner.ts";
+import { executeWithEvolve, INTEGRATION_USER } from "./evolveRunner.ts";
 
 const router = Router();
+
+// ============ MANAGED INTEGRATIONS (real OAuth-connected services) ============
+
+const DEMO_APPS = ["gmail", "slack", "googlecalendar"];
+
+// Which apps are connected for the demo user (so the UI can show status).
+router.get("/integrations", async (_req, res) => {
+  const out: Array<{ app: string; connected: boolean }> = [];
+  for (const app of DEMO_APPS) {
+    try {
+      const accts = await Evolve.integrations.accounts.list({
+        userIds: [INTEGRATION_USER],
+        app,
+        statuses: ["ACTIVE"],
+      });
+      out.push({ app, connected: accts.length > 0 });
+    } catch {
+      out.push({ app, connected: false });
+    }
+  }
+  res.json(out);
+});
+
+// Start the OAuth connect flow for an app → returns a URL the user opens.
+router.post("/integrations/connect", async (req, res) => {
+  const { app } = req.body as { app: string };
+  if (!app) return res.status(400).json({ error: "app required" });
+  try {
+    const { url } = await Evolve.integrations.auth({
+      userId: INTEGRATION_USER,
+      app,
+    });
+    res.json({ url });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
 
 // ============ PERSONAS ============
 
