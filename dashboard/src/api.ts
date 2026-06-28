@@ -1,7 +1,10 @@
 import axios from "axios";
 import { Persona, Task, PolicyDecision } from "./types.ts";
 
-const API_URL = "http://localhost:3001/api";
+// Configurable for deploys: set VITE_API_URL to your backend, e.g.
+// https://your-backend.up.railway.app/api  (falls back to local dev)
+const API_URL =
+  (import.meta as any).env?.VITE_API_URL || "http://localhost:3001/api";
 const client = axios.create({ baseURL: API_URL, timeout: 60000 });
 
 export const personasApi = {
