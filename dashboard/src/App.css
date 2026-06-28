@@ -231,6 +231,10 @@ textarea { resize: vertical; }
 .verdict { font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.04em; }
 .verdict.approved { color: var(--accent-bright); }
 .verdict.denied { color: var(--deny); }
+.verdict.partial { color: var(--gold); }
+.status-pill.partial { color: var(--gold); background: var(--gold-soft); }
+.decision.partial { background: var(--gold-soft); border-left-color: var(--gold); }
+.tl-item.partial .tl-marker { background: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); }
 .reasoning { color: var(--dim); font-size: 0.85rem; line-height: 1.55; }
 
 .row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; }

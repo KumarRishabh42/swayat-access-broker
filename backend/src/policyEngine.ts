@@ -84,5 +84,13 @@ export function generateReasoning(
     return `${d.service}: resource restrictions violated`;
   });
 
+  // Partial: some granted, some denied — describe both sides.
+  if (result.approved.length > 0) {
+    const granted = result.approved
+      .map((c) => `${c.service}:${c.actions.join(",")}`)
+      .join("; ");
+    return `Partially granted. ✓ Allowed: ${granted}. ✗ Blocked: ${deniedReasons.join("; ")}`;
+  }
+
   return `Denied capabilities: ${deniedReasons.join("; ")}`;
 }

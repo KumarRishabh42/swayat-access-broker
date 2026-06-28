@@ -144,12 +144,22 @@ router.post("/tasks", async (req, res) => {
 
   const check = isSubset(proposed, persona.ceiling);
   const reasoning = generateReasoning(proposed, check, persona.ceiling);
-  const willExecute = execute && check.isAllowed;
+
+  // approved → all granted; partial → some granted, some blocked; denied → none.
+  const status: PolicyDecision["status"] = check.isAllowed
+    ? "approved"
+    : check.approved.length > 0
+    ? "partial"
+    : "denied";
+
+  // Execute whenever at least one capability is granted (approved OR partial),
+  // running ONLY the approved subset.
+  const willExecute = !!execute && check.approved.length > 0;
 
   const decision: PolicyDecision = {
     taskId: task.id,
     personaId,
-    status: check.isAllowed ? "approved" : "denied",
+    status,
     proposedCapabilities: proposed,
     approvedCapabilities: check.approved,
     deniedCapabilities: check.denied,
@@ -159,8 +169,10 @@ router.post("/tasks", async (req, res) => {
     execution: {
       status: willExecute ? "pending" : "skipped",
       summary: willExecute
-        ? "Queued for Evolve execution"
-        : check.isAllowed
+        ? status === "partial"
+          ? "Queued — running the approved subset only"
+          : "Queued for Evolve execution"
+        : check.approved.length > 0
         ? "Execution not requested"
         : "Denied by policy — not executed",
     },
@@ -175,7 +187,7 @@ router.post("/tasks", async (req, res) => {
       execution: { status: "running", summary: "Running on Evolve (haiku)..." },
     });
     console.log(`[task ${task.id}] Executing via Evolve (haiku)...`);
-    executeWithEvolve(task, check.approved)
+    executeWithEvolve(task, check.approved, check.denied)
       .then((execution) => {
         decisionDB.update(task.id, { execution });
         console.log(`[task ${task.id}] Execution ${execution.status} (cost: $${execution.costUsd ?? "?"})`);

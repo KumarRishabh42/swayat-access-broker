@@ -48,7 +48,7 @@ export interface ExecutionResult {
 export interface PolicyDecision {
   taskId: string;
   personaId: string;
-  status: "approved" | "denied";
+  status: "approved" | "denied" | "partial";
   proposedCapabilities: CapabilityScope[];
   approvedCapabilities: CapabilityScope[];
   deniedCapabilities: CapabilityScope[];

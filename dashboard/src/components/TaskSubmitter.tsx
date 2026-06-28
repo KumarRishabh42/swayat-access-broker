@@ -174,10 +174,20 @@ function Pipeline({ decision }: { decision: PolicyDecision }) {
       <Step
         n={2}
         title="Policy gate decides"
-        state={decision.status === "approved" ? "done" : "denied"}
+        state={
+          decision.status === "approved"
+            ? "done"
+            : decision.status === "partial"
+            ? "running"
+            : "denied"
+        }
       >
         <div className={`verdict ${decision.status}`}>
-          {decision.status === "approved" ? "✓ APPROVED" : "✗ DENIED"}
+          {decision.status === "approved"
+            ? "✓ APPROVED"
+            : decision.status === "partial"
+            ? "◐ PARTIAL"
+            : "✗ DENIED"}
         </div>
         <p className="reasoning">{decision.reasoning}</p>
         {decision.approvedCapabilities.length > 0 && (

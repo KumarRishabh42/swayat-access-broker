@@ -37,7 +37,8 @@ function describe(caps: CapabilityScope[]): string {
 
 export async function executeWithEvolve(
   task: TaskRequest,
-  approved: CapabilityScope[]
+  approved: CapabilityScope[],
+  denied: CapabilityScope[] = []
 ): Promise<ExecutionResult> {
   const startedAt = new Date().toISOString();
 
@@ -66,12 +67,18 @@ export async function executeWithEvolve(
     ? `These services are NOT connected in this demo — SIMULATE them and clearly label any simulated step: ${simulated.join(", ")}.`
     : "";
 
+  const deniedLine = denied.length
+    ? `The following capabilities were DENIED by policy — do NOT attempt them. Skip those parts of the task and clearly note them as BLOCKED:\n${describe(denied)}`
+    : "";
+
   const prompt = `You are a restricted autonomous agent operating under a least-privilege policy.
 
 You are ONLY permitted to use these capabilities:
 ${allowList}
 
-Any action outside this allow-list is forbidden — if the task seems to need more, stop and explain what was blocked.
+${deniedLine}
+
+Any action outside the allow-list is forbidden. Do the parts you ARE allowed to do, and explicitly report the parts you could not.
 
 ${realLine}
 ${mockLine}
@@ -79,7 +86,7 @@ ${mockLine}
 TASK:
 ${task.userPrompt}
 
-When done, write a concise markdown report of what you did (real actions vs simulated) and anything you refused, to output/result.md.`;
+When done, write a concise markdown report to output/result.md with two sections: "Completed" (what you actually did, real vs simulated) and "Blocked by policy" (what you skipped and why).`;
 
   let agent: Evolve | null = null;
   try {
